@@ -1,0 +1,7 @@
+google-generativeai
+streamlit
+python-dotenv
+requests
+llama-index
+langgraph
+weasyprint

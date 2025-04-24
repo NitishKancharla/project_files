@@ -1,0 +1,7 @@
+langgraph==0.1.0
+llama-index==0.10.0
+streamlit==1.29.0
+smol-developer==0.5.2
+weasyprint==58.0
+requests==2.31.0
+python-dotenv==1.0.0

@@ -1,76 +1,67 @@
 import streamlit as st
-from pytrends.request import TrendReq
+import feedparser
 import google.generativeai as genai
+import random
 
-# Configure Google Generative AI API
+# ================================
+# Gemini API Setup
+# ================================
 genai.configure(api_key="AIzaSyDS0SXbtLKaawt2IdjTezO8HzsaSoM6RJM")
 model = genai.GenerativeModel("gemini-1.5-flash")
 
-# Function to fetch trending topics from Google Trends
+# ================================
+# Trending Topics from Google Trends (RSS Feed)
+# ================================
 def fetch_trending_topics():
-    pytrends = TrendReq(hl='en-US', tz=330)
-    trending_searches_df = pytrends.trending_searches(pn='india')
-    trending_topics = trending_searches_df[0].tolist()
-    return trending_topics[:10]  # Get top 10 trending topics
+    url = 'https://trends.google.com/trends/trendingsearches/daily/rss?geo=IN'
+    feed = feedparser.parse(url)
+    topics = [entry['title'] for entry in feed.entries]
+    return topics[:10]  # Top 10 topics
 
-# Function to generate Tenglish meme using Gemini API
-def generate_tenglish_meme(topic):
+# ================================
+# Generate Tenglish Meme Text
+# ================================
+def generate_tenglish_meme(context):
     prompt = f"""
-    Generate a humorous meme caption in Tenglish (Telugu + English) about "{topic}".
-    The caption should be a blend of Telugu and English, reflecting casual conversation among friends.
-    Example: "Weekend ki plans enti ra? Netflix and chill ha?"
+    Generate a funny meme dialogue in Tenglish (Telugu + English mix) based on the topic: "{context}".
+    Make it sound like a Hyderabadi friend's casual joke.
+    
+    Example style:
+    "Orey bro, Elon Musk Twitter ni teesukunnaadu ra... mana tweet lu baapam orphan aipoyayi!"
+
+    Keep the meme under 2 lines, very casual and funny.
     """
+
     try:
         response = model.generate_content(prompt)
         return response.text.strip()
     except Exception as e:
-        st.error(f"Error generating meme: {e}")
-        return ""
+        return f"❌ Error generating meme: {e}"
 
-# Streamlit UI
-st.set_page_config(page_title="Tenglish Meme Bot", layout="centered")
+# ================================
+# Streamlit App Interface
+# ================================
+st.set_page_config(page_title="😂 Tenglish Meme Bot", layout="centered")
+
 st.title("😂 Tenglish Meme Bot")
+st.markdown("Generate funny Hyderabadi-style memes from trending topics!\n\n_Uses Gemini 1.5 Flash + Google Trends RSS Feed_")
 
-menu = st.sidebar.radio("Menu", ["Generate Meme", "Trending Topics", "Chat", "Exit"])
+# Get Trending Topics
+with st.spinner("Fetching trending topics..."):
+    trending_topics = fetch_trending_topics()
 
-if menu == "Generate Meme":
-    st.subheader("Generate a Tenglish Meme")
-    topic = st.text_input("Enter a topic for the meme:")
-    if st.button("Generate"):
-        if topic:
-            meme = generate_tenglish_meme(topic)
-            st.success(f"Here's your meme: {meme}")
-        else:
-            st.warning("Please enter a topic.")
+if trending_topics:
+    selected_topic = st.selectbox("📈 Choose a Trending Topic:", trending_topics)
 
-elif menu == "Trending Topics":
-    st.subheader("Trending Topics")
-    if st.button("Fetch Trending Topics"):
-        trending_topics = fetch_trending_topics()
-        if trending_topics:
-            st.write("Top Trending Topics:")
-            for i, topic in enumerate(trending_topics, 1):
-                st.write(f"{i}. {topic}")
-            selected_topic = st.selectbox("Select a topic to generate a meme:", trending_topics)
-            if st.button("Generate Meme for Selected Topic"):
-                meme = generate_tenglish_meme(selected_topic)
-                st.success(f"Here's your meme: {meme}")
-        else:
-            st.warning("No trending topics found.")
+    if st.button("🔥 Generate Meme"):
+        with st.spinner("Generating meme with Gemini 1.5 Flash..."):
+            meme = generate_tenglish_meme(selected_topic)
+            st.success("Here’s your Tenglish meme! 😂")
+            st.markdown(f"**💬 {meme}**")
 
-elif menu == "Chat":
-    st.subheader("Fun Chat")
-    user_input = st.text_input("Say something:")
-    if st.button("Reply"):
-        prompt = f"""
-        Respond humorously in Tenglish to: "{user_input}"
-        """
-        try:
-            response = model.generate_content(prompt)
-            st.success(response.text.strip())
-        except Exception as e:
-            st.error(f"Error generating reply: {e}")
+else:
+    st.error("Failed to fetch trending topics. Try again later.")
 
-elif menu == "Exit":
-    st.write("Thank you for using the Tenglish Meme Bot!")
-
+# Footer
+st.markdown("---")
+st.caption("Built with ❤️ using Gemini 1.5 Flash and Streamlit.")
